@@ -17,3 +17,6 @@ def bidirectional_3_layer_bn(hparams):
     model = tf.keras.models.Model(inp, out)
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
+
+
+model_dict = {'classifier_3layer_bn': bidirectional_3_layer_bn}

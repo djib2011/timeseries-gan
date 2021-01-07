@@ -18,3 +18,5 @@ def bidirectional_3_layer_bn(hparams):
     model = tf.keras.models.Model(inp, out)
     model.compile(loss='mae', optimizer='adam', metrics=['mae', 'mse'])
     return model
+
+model_dict = {'forecaster_3layer_bn': bidirectional_3_layer_bn}
