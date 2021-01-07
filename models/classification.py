@@ -11,7 +11,7 @@ def bidirectional_3_layer_bn(hparams):
     x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(s * 4, return_sequences=True))(x)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(hparams['output_seq_length'] * s // 2)(x)
+    x = tf.keras.layers.Dense(hparams['input_seq_length'] * s // 6)(x)
     x = tf.keras.layers.BatchNormalization()(x)
     out = tf.keras.layers.Dense(1, activation='softmax')(x)
     model = tf.keras.models.Model(inp, out)
