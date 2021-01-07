@@ -56,6 +56,10 @@ class GAN(tf.keras.Model):
     def discriminate(self, x):
         return self.disc(x)
 
+    def generate_n_samples(self, n):
+        z = tf.random.normal([n, self.latent_size])
+        return self.generate(z)
+
     def compute_loss(self, x):
         """ passes through the network and computes loss
         """
@@ -125,8 +129,8 @@ class GAN(tf.keras.Model):
         self.disc.save(result_dir + 'discriminator_epoch_{}.h5'.format(epoch))
 
     def load_models(self, gen_path, disc_path):
-        self.gen.load(gen_path)
-        self.disc.load(disc_path)
+        self.gen = tf.keras.models.load_model(gen_path)
+        self.disc = tf.keras.models.load_model(disc_path)
 
     # @tf.function
     def train(self, train_generator, valid_generator, train_steps, valid_steps, epochs=50,
