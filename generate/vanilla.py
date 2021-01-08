@@ -12,7 +12,7 @@ results_dir = 'results/{}/'.format(model_name)
 samples_dir = 'synthetic/{}/'.format(model_name)
 g_path = results_dir + 'generator_epoch_{}.h5'.format(epoch)
 d_path = results_dir + 'discriminator_epoch_{}.h5'.format(epoch)
-num_samples = 5000
+num_samples = 14252
 output_len = 24
 latent_dim = 5
 
