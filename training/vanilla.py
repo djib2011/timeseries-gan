@@ -12,11 +12,12 @@ import models
 train_path = 'data/yearly_24_nw_train.h5'
 test_path = 'data/yearly_24_nw_test.h5'
 
+name = 'vanilla_lstm_large'
 batch_size = 512
-result_dir = 'results/vanilla/'
-report_dir = 'reports/vanilla/'
+result_dir = 'results/{}/'.format(name)
+report_dir = 'reports/{}/'.format(name)
 
-model_gen = models.get_model('vanilla_gan')
+model_gen = models.get_model('{}_gan'.format(name))
 
 hparams = {'latent_size': 5, 'output_seq_len': 24}
 
