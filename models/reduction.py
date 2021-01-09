@@ -28,7 +28,7 @@ def bidirectional_2_layer_bn(hparams):
     x = tf.keras.layers.BatchNormalization()(x)
 
     # Output
-    out = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(1, return_sequences=True))(x)
+    out = tf.keras.layers.LSTM(1, return_sequences=True)(x)
 
     encoder = tf.keras.models.Model(inp, encoded)
     autoencoder = tf.keras.models.Model(inp, out)
@@ -43,5 +43,5 @@ if __name__ == '__main__':
 
     hparams = {'input_seq_length': 24, 'base_layer_size': 32}
 
-    model = bidirectional_2_layer_bn(hparams)
-    model.summary()
+    encoder, autoencoder = bidirectional_2_layer_bn(hparams)
+    autoencoder.summary()

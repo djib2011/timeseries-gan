@@ -24,4 +24,7 @@ if __name__ == '__main__':
     r_2d = encoder.predict(x_test[real])
     f_2d = encoder.predict(x_test[~real])
 
-    print(r_2d.shape, f_2d.shape)
+    # print(r_2d.shape, f_2d.shape)
+
+    with open('/tmp/ae_vis.pkl', 'wb') as f:
+        pkl.dump({'real': r_2d, 'fake': f_2d}, f)
