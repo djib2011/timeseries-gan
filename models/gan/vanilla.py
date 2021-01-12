@@ -5,101 +5,9 @@ from tqdm import tqdm
 import os
 import sys
 
-
 sys.path.append(os.getcwd())
 import datasets
-
-
-def create_conv_generator_simple(hparams):
-
-    inp = tf.keras.layers.Input((hparams['latent_size'],))
-    x = tf.keras.layers.Dense(hparams['latent_size'], activation='relu')(inp)
-    x = tf.keras.layers.Reshape((hparams['latent_size'], 1))(x)
-    x = tf.keras.layers.Conv1DTranspose(filters=64, kernel_size=3, strides=2, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Conv1DTranspose(filters=32, kernel_size=3, strides=2, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Conv1DTranspose(filters=32, kernel_size=3, strides=2, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Conv1D(filters=1, kernel_size=3, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(hparams['output_seq_len'])(x)
-
-    model = tf.keras.models.Model(inp, out, name='generator')
-    return model
-
-
-def create_lstm_generator_simple(hparams):
-    ls = hparams['latent_size']
-    inp = tf.keras.layers.Input((ls,))
-    x = tf.keras.layers.Dense(ls, activation='relu')(inp)
-    x = tf.keras.layers.Reshape((ls, 1))(x)
-    x = tf.keras.layers.LSTM(ls*8, return_sequences=True)(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.LSTM(ls*4, return_sequences=True)(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.LSTM(ls*2, return_sequences=True)(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.LSTM(ls, return_sequences=True)(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(hparams['output_seq_len'])(x)
-    model = tf.keras.models.Model(inp, out, name='generator')
-    return model
-
-
-def create_lstm_generator_large(hparams):
-    ls = hparams['latent_size']
-    inp = tf.keras.layers.Input((ls,))
-    x = tf.keras.layers.Dense(ls, activation='relu')(inp)
-    x = tf.keras.layers.Reshape((ls, 1))(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*16, return_sequences=True))(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*8, return_sequences=True))(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*4, return_sequences=True))(x)
-    x = tf.keras.layers.UpSampling1D()(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*2, return_sequences=True))(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(hparams['output_seq_len'])(x)
-    model = tf.keras.models.Model(inp, out, name='generator')
-    return model
-
-
-def create_conv_discriminator_simple(hparams):
-    inp = tf.keras.layers.Input((hparams['output_seq_len'],))
-    x = tf.keras.layers.Reshape((hparams['output_seq_len'], 1))(inp)
-    x = tf.keras.layers.Conv1D(32, 3, padding='same', strides=2, activation='relu')(x)
-    x = tf.keras.layers.Conv1D(32, 3, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Conv1D(32, 3, padding='same', strides=2, activation='relu')(x)
-    x = tf.keras.layers.Conv1D(32, 3, padding='same', activation='relu')(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(1)(x)
-
-    model = tf.keras.models.Model(inp, out, name='discriminator')
-    return model
-
-
-def create_lstm_discriminator_simple(hparams):
-    ls = hparams['latent_size']
-    inp = tf.keras.layers.Input((hparams['output_seq_len'],))
-    x = tf.keras.layers.Reshape((hparams['output_seq_len'], 1))(inp)
-    x = tf.keras.layers.LSTM(ls*2, return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(ls*4, return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(ls*8, return_sequences=True)(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(1)(x)
-    model = tf.keras.models.Model(inp, out, name='discriminator')
-    return model
-
-
-def create_lstm_discriminator_large(hparams):
-    ls = hparams['latent_size']
-    inp = tf.keras.layers.Input((hparams['output_seq_len'],))
-    x = tf.keras.layers.Reshape((hparams['output_seq_len'], 1))(inp)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*4, return_sequences=True))(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*8, return_sequences=True))(x)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls*16, return_sequences=True))(x)
-    x = tf.keras.layers.Flatten()(x)
-    out = tf.keras.layers.Dense(1)(x)
-    model = tf.keras.models.Model(inp, out, name='discriminator')
-    return model
+from models.gan import generators, discriminators
 
 
 class GAN(tf.keras.Model):
@@ -225,9 +133,9 @@ class GAN(tf.keras.Model):
 
 def make_vanilla_conv(hparams):
 
-    generator = create_conv_generator_simple(hparams)
+    generator = generators.create_conv_generator_simple(hparams)
 
-    discriminator = create_conv_discriminator_simple(hparams)
+    discriminator = discriminators.create_conv_discriminator_simple(hparams)
 
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
@@ -240,9 +148,9 @@ def make_vanilla_conv(hparams):
 
 def make_vanilla_lstm_small(hparams):
 
-    generator = create_lstm_generator_simple(hparams)
+    generator = generators.create_lstm_generator_simple(hparams)
 
-    discriminator = create_lstm_discriminator_simple(hparams)
+    discriminator = discriminators.create_lstm_discriminator_simple(hparams)
 
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
@@ -255,9 +163,9 @@ def make_vanilla_lstm_small(hparams):
 
 def make_vanilla_lstm_large(hparams):
 
-    generator = create_lstm_generator_large(hparams)
+    generator = generators.create_lstm_generator_large(hparams)
 
-    discriminator = create_lstm_discriminator_large(hparams)
+    discriminator = discriminators.create_lstm_discriminator_large(hparams)
 
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
