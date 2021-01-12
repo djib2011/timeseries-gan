@@ -1,36 +1,41 @@
-import tensorflow as tf
+import os
+import sys
+from pathlib import Path
+import pickle as pkl
+
+sys.path.append(os.getcwd())
+
+import datasets
+import models
 
 
-def gradient_penalty(real_data, generated_data):
+train_path = 'data/yearly_24_nw_train.h5'
+test_path = 'data/yearly_24_nw_test.h5'
 
-    batch_size = real_data.shape[0]
+name = 'wasserstein_lstm_large'
+batch_size = 512
+result_dir = 'results/{}/'.format(name)
+report_dir = 'reports/{}/'.format(name)
 
-    # Calculate interpolation
-    alpha = tf.random.uniform((batch_size,))
-    alpha = tf.reshape(alpha, real_data.shape)
+model_gen = models.get_model('{}_gan'.format(name))
 
+hparams = {'latent_size': 5, 'output_seq_len': 24, 'gp_weight': 10}
 
-    interpolated = alpha * real_data + (1 - alpha) * generated_data
-    interpolated = Variable(interpolated, requires_grad=True)
-    if self.use_cuda:
-        interpolated = interpolated.cuda()
+gan = model_gen(hparams)
 
-    # Pass interpolated data through Critic
-    prob_interpolated = self.c(interpolated)
+train_gen = datasets.gan_generator(train_path, batch_size=1024, shuffle=True)
+valid_gen = datasets.gan_generator(test_path, batch_size=1024, shuffle=True)
 
-    # Calculate gradients of probabilities with respect to examples
-    gradients = torch_grad(outputs=prob_interpolated, inputs=interpolated,
-                           grad_outputs=torch.ones(prob_interpolated.size()).cuda() if self.use_cuda
-                           else torch.ones(prob_interpolated.size()), create_graph=True,
-                           retain_graph=True)[0]
-    # Gradients have shape (batch_size, num_channels, series length),
-    # here we flatten to take the norm per example for every batch
-    gradients = gradients.view(batch_size, -1)
-    self.losses['gradient_norm'].append(gradients.norm(2, dim=1).mean().data.item())
+g_losses, d_losses = gan.train(train_gen, valid_gen,
+                               train_steps=len(train_gen) // batch_size + 1,
+                               valid_steps=len(valid_gen) // batch_size + 1,
+                               result_dir=result_dir,
+                               save_weights=True)
 
-    # Derivatives of the gradient close to 0 can cause problems because of the
-    # square root, so manually calculate norm and add epsilon
-    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+report_dir = Path(report_dir)
 
-    # Return gradient penalty
-    return self.gp_weight * ((gradients_norm - 1) ** 2).mean()
+if not report_dir.is_dir():
+    os.makedirs(report_dir)
+
+with open(str(report_dir / 'losses.pkl'), 'wb') as f:
+    pkl.dump({'generator': g_losses, 'discriminator': d_losses}, f)
