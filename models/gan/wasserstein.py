@@ -27,6 +27,10 @@ class WGAN(tf.keras.Model):
     def discriminate(self, x):
         return self.disc(x)
 
+    def generate_n_samples(self, n):
+        z = tf.random.normal([n, self.latent_size])
+        return self.generate(z)
+
     def compute_loss(self, x):
         """
         passes through the network and computes loss

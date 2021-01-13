@@ -30,7 +30,8 @@ g_losses, d_losses = gan.train(train_gen, valid_gen,
                                train_steps=len(train_gen) // batch_size + 1,
                                valid_steps=len(valid_gen) // batch_size + 1,
                                result_dir=result_dir,
-                               save_weights=True)
+                               save_weights=True,
+                               epochs=50)
 
 report_dir = Path(report_dir)
 
