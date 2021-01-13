@@ -45,7 +45,9 @@ def create_tsne_visualization(samples_file):
 
     tsne = TSNE(n_components=2)
 
-    data_2d = tsne.fit_transform(np.r_[x_train, x_test])
+    x = np.r_[x_train, x_test]
+    np.random.shuffle(x)
+    data_2d = tsne.fit_transform(x)
 
     real = np.r_[y_train, y_test].astype(bool)
 
