@@ -14,20 +14,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-n', '--name', type=str, help='Name of the model to load.')
+    parser.add_argument('-d', '--dset', type=str, help='Name of the dataset used to train the model.')
     parser.add_argument('-e', '--epoch', type=int, default=None, help='Which epoch to load. If not defined, will select'
                                                                       'the last epoch.')
 
     args = parser.parse_args()
 
+    results_dir = 'results/{}_{}/'.format(args.name, args.dset)
+    samples_dir = 'samples/{}_{}/'.format(args.name, args.dset)
+
     if args.epoch is None:
         epoch = sorted([int(str(x).split('_')[-1].replace('.h5', ''))
-                        for x in Path('results/{}'.format(args.name)).glob('generator*')])[-1]
+                        for x in Path(results_dir).glob('generator*')])[-1]
         print('Epoch not specified. Using last available epoch:', epoch)
     else:
         epoch = args.epoch
-
-    results_dir = 'results/{}/'.format(args.name)
-    samples_dir = 'samples/{}/'.format(args.name)
     g_path = results_dir + 'generator_epoch_{}.h5'.format(epoch)
     d_path = results_dir + 'discriminator_epoch_{}.h5'.format(epoch)
     num_samples = 14252
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     if not os.path.isdir(samples_dir):
         os.makedirs(samples_dir)
 
-    with h5py.File(samples_dir + 'samples.h5', 'w') as hf:
+    with h5py.File(samples_dir + 'samples_epoch_{}.h5'.format(args.epoch), 'w') as hf:
         hf.create_dataset('X', data=synthetic_data.numpy())
 
-    print('Samples saved at:', samples_dir + 'samples.h5')
+    print('Samples saved at:', samples_dir + 'samples_epoch_{}.h5'.format(args.epoch))

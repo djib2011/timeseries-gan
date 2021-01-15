@@ -9,19 +9,25 @@ import datasets
 import models
 
 
-train_path = 'data/yearly_24_nw_train.h5'
-test_path = 'data/yearly_24_nw_test.h5'
+dataset_name = '235k'
 
 name = 'vanilla_lstm_large'
 batch_size = 512
-result_dir = 'results/{}/'.format(name)
-report_dir = 'reports/{}/'.format(name)
+result_dir = 'results/{}_{}/'.format(name, dataset_name)
+report_dir = 'reports/{}_{}/'.format(name, dataset_name)
 
 model_gen = models.get_model('{}_gan'.format(name))
 
 hparams = {'latent_size': 5, 'output_seq_len': 24}
 
 gan = model_gen(hparams)
+
+if dataset_name == '235k':
+    train_path = 'data/yearly_24_train.h5'
+    test_path = 'data/yearly_24_test.h5'
+else:
+    train_path = 'data/yearly_24_nw_train.h5'
+    test_path = 'data/yearly_24_nw_test.h5'
 
 train_gen = datasets.gan_generator(train_path, batch_size=1024, shuffle=True)
 valid_gen = datasets.gan_generator(test_path, batch_size=1024, shuffle=True)
@@ -39,3 +45,4 @@ if not report_dir.is_dir():
 
 with open(str(report_dir / 'losses.pkl'), 'wb') as f:
     pkl.dump({'generator': g_losses, 'discriminator': d_losses}, f)
+
