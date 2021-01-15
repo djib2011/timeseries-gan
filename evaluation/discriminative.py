@@ -13,13 +13,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name', type=str, help='Name of the model to load.')
+    parser.add_argument('-d', '--dset', type=str, help='Name of the dataset used to train the model.')
     parser.add_argument('-e', '--epochs', type=int, default=10, help='Number of epochs to train discriminator.')
     args = parser.parse_args()
 
-    samples_file = 'samples/{}/samples.h5'.format(args.name)
+    samples_file = 'samples/{}_{}/samples.h5'.format(args.name, args.dset)
     print('Getting samples from:', samples_file)
 
-    report_dir = 'reports/{}/'.format(args.name)
+    report_dir = 'reports/{}_{}/'.format(args.name, args.dset)
 
     x_train, x_test, y_train, y_test = evaluation.make_train_test_sets(samples_file)
 

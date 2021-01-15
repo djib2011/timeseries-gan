@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 import h5py
 
 
@@ -51,3 +52,7 @@ def make_train_test_sets(samples_file):
     y_test = y_test[ind]
 
     return x_train, x_test, y_train, y_test
+
+
+def find_last_samples_file(samples_dir):
+    return sorted([str(s) for s in Path(samples_dir).glob('*.h5')])[-1]

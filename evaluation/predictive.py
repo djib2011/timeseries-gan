@@ -51,13 +51,21 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name', type=str, help='Name of the model to load.')
+    parser.add_argument('-d', '--dset', type=str, help='Name of the dataset used to train the model.')
     parser.add_argument('-e', '--epochs', type=int, default=10, help='Number of epochs to train discriminator.')
+    parser.add_argument('-se', '--samples-epoch', type=int, default=None, help='What epoch to get samples from.')
     args = parser.parse_args()
 
-    samples_file = 'samples/{}/samples.h5'.format(args.name)
+    print(dir(args))
+    samples_dir = 'samples/{}_{}/'.format(args.name, args.dset)
+    if args.samples_epoch is None:
+        samples_file = evaluation.find_last_samples_file(samples_dir)
+    else:
+        samples_file = samples_dir + 'samples_epoch_{}.h5'.format(args.samples_epoch)
+
     print('Getting samples from:', samples_file)
 
-    report_dir = 'reports/{}/'.format(args.name)
+    report_dir = 'reports/{}_{}/'.format(args.name, args.dset)
 
     real_train, real_test = evaluation.load_data_real()
     fake_train, fake_test = evaluation.load_data_fake(samples_file)
