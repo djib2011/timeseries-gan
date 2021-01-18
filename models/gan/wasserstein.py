@@ -144,6 +144,21 @@ def make_wgan_lstm_large(hparams):
     return gan
 
 
+def make_wgan_conv_complex(hparams):
+
+    generator = generators.create_conv_generator_complex(hparams)
+
+    discriminator = discriminators.create_conv_critic_complex(hparams)
+
+    gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
+    disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
+
+    gan = WGAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
+              latent_size=hparams['latent_size'], gradient_penalty_weight=hparams['gp_weight'])
+
+    return gan
+
+
 if __name__ == '__main__':
 
     hparams = {'latent_size': 5, 'output_seq_len': 24}

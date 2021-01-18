@@ -8,8 +8,7 @@ sys.path.append(os.getcwd())
 import datasets
 import models
 
-
-dataset_name = '235k'
+dataset_name = '14k'
 
 name = 'vanilla_lstm_large'
 batch_size = 512

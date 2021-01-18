@@ -8,20 +8,29 @@ sys.path.append(os.getcwd())
 import datasets
 import models
 
-
-train_path = 'data/yearly_24_nw_train.h5'
-test_path = 'data/yearly_24_nw_test.h5'
-
-name = 'wasserstein_lstm_large'
+dataset_name = '235k'
+name = 'wasserstein_conv_complex'
 batch_size = 512
-result_dir = 'results/{}/'.format(name)
-report_dir = 'reports/{}/'.format(name)
+num_blocks = 3
+
+hparams = {'latent_size': 5, 'output_seq_len': 24, 'gp_weight': 10,
+           'num_generator_blocks': num_blocks, 'num_critic_blocks': num_blocks}
+
+result_dir = 'results/{}_{}_{}/'.format(name, num_blocks, dataset_name)
+report_dir = 'reports/{}_{}_{}/'.format(name, num_blocks, dataset_name)
 
 model_gen = models.get_model('{}_gan'.format(name))
 
-hparams = {'latent_size': 5, 'output_seq_len': 24, 'gp_weight': 10}
-
 gan = model_gen(hparams)
+
+if dataset_name == '235k':
+    train_path = 'data/yearly_24_train.h5'
+    test_path = 'data/yearly_24_test.h5'
+elif dataset_name == '14k':
+    train_path = 'data/yearly_24_nw_train.h5'
+    test_path = 'data/yearly_24_nw_test.h5'
+else:
+    raise ValueError('invalid dataset name')
 
 train_gen = datasets.gan_generator(train_path, batch_size=1024, shuffle=True)
 valid_gen = datasets.gan_generator(test_path, batch_size=1024, shuffle=True)
