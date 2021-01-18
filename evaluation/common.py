@@ -2,28 +2,31 @@ import numpy as np
 from pathlib import Path
 import h5py
 
+import os
+import sys
+sys.path.append(os.getcwd())
 
-def load_data_real():
-
-    real_data_train = 'data/yearly_24_nw_train.h5'
-    real_data_test = 'data/yearly_24_nw_test.h5'
-
-    with h5py.File(real_data_train, 'r') as hf:
-        x_train = np.array(hf.get('X'))
-        y_train = np.array(hf.get('y'))
-
-    train = np.c_[x_train, y_train]
-
-    with h5py.File(real_data_test, 'r') as hf:
-        x_test = np.array(hf.get('X'))
-        y_test = np.array(hf.get('y'))
-
-    test = np.c_[x_test, y_test]
-
-    return train, test
+import datasets
 
 
-def load_data_fake(samples_file):
+def load_data_real(dset_name: str) -> (np.ndarray,) * 2:
+    """
+    Load file containing real series.
+
+    :param dset_name: name of the dataset
+    :return: real data split into training and test sets
+    """
+
+    return datasets.get(dset_name)
+
+
+def load_data_fake(samples_file: str) -> (np.ndarray,) * 2:
+    """
+    Load file containing fake series.
+
+    :param samples_file: location of a file containing synthetic samples
+    :return: real data split into training and test sets
+    """
 
     with h5py.File(samples_file, 'r') as hf:
         fake = np.array(hf.get('X'))
@@ -34,9 +37,15 @@ def load_data_fake(samples_file):
     return train, test
 
 
-def make_train_test_sets(samples_file):
+def make_train_test_sets(dset_name: str, samples_file: str) -> (np.ndarray,) * 4:
+    """
+    Make train and test sets for discriminating between real and fake series
 
-    r_train, r_test = load_data_real()
+    :param dset_name: name of the real dataset
+    :param samples_file: location of a file containing synthetic samples
+    :return: X_train, X_test, y_train, y_test
+    """
+    r_train, r_test = load_data_real(dset_name)
     f_train, f_test = load_data_fake(samples_file)
 
     x_train = np.r_[r_train, f_train]
@@ -54,5 +63,11 @@ def make_train_test_sets(samples_file):
     return x_train, x_test, y_train, y_test
 
 
-def find_last_samples_file(samples_dir):
+def find_last_samples_file(samples_dir: str) -> str:
+    """
+    Find the samples from the samples_dir that correspond to the last epoch
+
+    :param samples_dir: directory containing samples files
+    :return: the path to the latest samples dir
+    """
     return sorted([str(s) for s in Path(samples_dir).glob('*.h5')])[-1]

@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     report_dir = 'reports/{}_{}/'.format(args.name, args.dset)
 
-    real_train, real_test = evaluation.load_data_real()
+    real_train, real_test = evaluation.load_data_real(args.dset)
     fake_train, fake_test = evaluation.load_data_fake(samples_file)
 
     x_real_train, y_real_train = split_series(real_train)
