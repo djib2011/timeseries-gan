@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import h5py
 from pathlib import Path
 from typing import Union
 
@@ -16,6 +17,26 @@ def get_last_N(series: Union[pd.Series, np.ndarray], N: int = 18):
         pad = [ser_N[0]] * (N - len(ser_N))
         ser_N = np.r_[pad, ser_N]
     return ser_N
+
+
+def load_data(file_pattern: str) -> (np.ndarray,) * 2:
+
+    real_data_train = file_pattern + '_train.h5'
+    real_data_test = file_pattern + '_test.h5'
+
+    with h5py.File(real_data_train, 'r') as hf:
+        x_train = np.array(hf.get('X'))
+        y_train = np.array(hf.get('y'))
+
+    train = np.c_[x_train, y_train]
+
+    with h5py.File(real_data_test, 'r') as hf:
+        x_test = np.array(hf.get('X'))
+        y_test = np.array(hf.get('y'))
+
+    test = np.c_[x_test, y_test]
+
+    return train, test
 
 
 def load_test_set(data_dir: Union[Path, str] = 'data'):
