@@ -159,6 +159,16 @@ def make_wgan_conv_complex(hparams):
     return gan
 
 
+def get_complex(blocks):
+
+    def wrapper(hparams):
+        hparams['num_generator_blocks'] = blocks
+        hparams['num_critic_blocks'] = blocks
+        return make_wgan_conv_complex(hparams)
+
+    return wrapper
+
+
 if __name__ == '__main__':
 
     hparams = {'latent_size': 5, 'output_seq_len': 24}
