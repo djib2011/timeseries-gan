@@ -47,7 +47,7 @@ if __name__ == '__main__':
     if not os.path.isdir(samples_dir):
         os.makedirs(samples_dir)
 
-    with h5py.File(samples_dir + 'samples_epoch_{}.h5'.format(args.epoch), 'w') as hf:
+    with h5py.File(samples_dir + 'samples_epoch_{}.h5'.format(epoch), 'w') as hf:
         hf.create_dataset('X', data=synthetic_data.numpy())
 
-    print('Samples saved at:', samples_dir + 'samples_epoch_{}.h5'.format(args.epoch))
+    print('Samples saved at:', samples_dir + 'samples_epoch_{}.h5'.format(epoch))
