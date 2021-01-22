@@ -83,3 +83,36 @@ def create_conv_generator_complex(hparams):
     model = tf.keras.models.Model(inp, out, name='generator')
 
     return model
+
+
+def create_lstm_generator_complex(hparams):
+
+    ls = hparams['latent_size']
+
+    def block(x):
+        x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls, return_sequences=True))(x)
+        x = tf.keras.layers.LayerNormalization()(x)
+        x = tf.keras.layers.LeakyReLU(0.2)(x)
+        x = tf.keras.layers.UpSampling1D(size=2)(x)
+        return x
+
+    inp = tf.keras.layers.Input((hparams['latent_size'],))
+    x = tf.keras.layers.Dense(hparams['latent_size'])(inp)
+    x = tf.keras.layers.LeakyReLU(0.2)(x)
+    x = tf.keras.layers.Reshape((hparams['latent_size'], 1))(x)
+
+    for _ in range(hparams['num_generator_blocks']):
+        x = block(x)
+
+    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls, return_sequences=True))(x)
+    x = tf.keras.layers.LayerNormalization()(x)
+    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(1, return_sequences=True))(x)
+    x = tf.keras.layers.LayerNormalization()(x)
+    x = tf.keras.layers.LeakyReLU(0.2)(x)
+
+    x = tf.keras.layers.Flatten()(x)
+    out = tf.keras.layers.Dense(hparams['output_seq_len'])(x)
+
+    model = tf.keras.models.Model(inp, out, name='generator')
+
+    return model

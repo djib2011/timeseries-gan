@@ -48,7 +48,6 @@ def create_conv_critic_complex(hparams):
         c = tf.keras.layers.Conv1D(32, 3, padding='same')
         x = tfa.layers.SpectralNormalization(c, power_iterations=10)(x)
         x = tf.keras.layers.LeakyReLU(0.2)(x)
-        print(x.shape)
         x = tf.keras.layers.MaxPool1D(pool_size=2)(x)
         return x
 
@@ -60,6 +59,40 @@ def create_conv_critic_complex(hparams):
 
     c = tf.keras.layers.Conv1D(32, 3, padding='same')
     x = tfa.layers.SpectralNormalization(c, power_iterations=10)(x)
+    x = tf.keras.layers.LeakyReLU(0.2)(x)
+
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(50)(x)
+    x = tf.keras.layers.LeakyReLU(0.2)(x)
+
+    x = tf.keras.layers.Dense(15)(x)
+    x = tf.keras.layers.LeakyReLU(0.2)(x)
+
+    out = tf.keras.layers.Dense(1)(x)
+
+    model = tf.keras.models.Model(inp, out, name='critic')
+
+    return model
+
+
+def create_lstm_critic_complex(hparams):
+
+    ls = hparams['latent_size']
+
+    def block(x):
+        x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls, return_sequences=True))(x)
+        x = tf.keras.layers.LayerNormalization()(x)
+        x = tf.keras.layers.LeakyReLU(0.2)(x)
+        return x
+
+    inp = tf.keras.layers.Input((hparams['output_seq_len'],))
+    x = tf.keras.layers.Reshape((hparams['output_seq_len'], 1))(inp)
+
+    for _ in range(hparams['num_critic_blocks']):
+        x = block(x)
+
+    x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(ls, return_sequences=True))(x)
+    x = tf.keras.layers.LayerNormalization()(x)
     x = tf.keras.layers.LeakyReLU(0.2)(x)
 
     x = tf.keras.layers.Flatten()(x)

@@ -159,24 +159,42 @@ def make_wgan_conv_complex(hparams):
     return gan
 
 
-def get_complex(blocks):
+def make_wgan_lstm_complex(hparams):
+
+    generator = generators.create_lstm_generator_complex(hparams)
+
+    discriminator = discriminators.create_lstm_critic_complex(hparams)
+
+    gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
+    disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
+
+    gan = WGAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
+              latent_size=hparams['latent_size'], gradient_penalty_weight=hparams['gp_weight'])
+
+    return gan
+
+
+def get_complex(layer_type, blocks):
 
     def wrapper(hparams):
         hparams['num_generator_blocks'] = blocks
         hparams['num_critic_blocks'] = blocks
-        return make_wgan_conv_complex(hparams)
+        if layer_type == 'conv':
+            return make_wgan_conv_complex(hparams)
+        elif layer_type == 'lstm':
+            return make_wgan_lstm_complex(hparams)
 
     return wrapper
 
 
 if __name__ == '__main__':
 
-    hparams = {'latent_size': 5, 'output_seq_len': 24}
+    hparams = {'latent_size': 5, 'output_seq_len': 24, 'num_generator_blocks': 3, 'num_critic_blocks': 3}
 
-    generator = create_lstm_generator_large(hparams)
+    generator = generators.create_lstm_generator_complex(hparams)
     generator.summary()
 
-    discriminator = create_lstm_critic_large(hparams)
+    discriminator = discriminators.create_lstm_critic_complex(hparams)
     discriminator.summary()
 
     # optimizers
