@@ -8,8 +8,8 @@ sys.path.append(os.getcwd())
 import datasets
 import models
 
-dataset_name = '235k'
-name = 'wasserstein_conv_complex'
+dataset_name = '14k'
+name = 'wasserstein_lstm_complex'
 batch_size = 512
 num_blocks = 3
 
@@ -19,7 +19,7 @@ hparams = {'latent_size': 5, 'output_seq_len': 24, 'gp_weight': 10,
 result_dir = 'results/{}_{}_{}/'.format(name, num_blocks, dataset_name)
 report_dir = 'reports/{}_{}_{}/'.format(name, num_blocks, dataset_name)
 
-model_gen = models.get_model('{}_gan'.format(name))
+model_gen = models.get_model('{}_{}_gan'.format(name, num_blocks))
 
 gan = model_gen(hparams)
 
