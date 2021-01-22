@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import os
 import sys
+import tsfresh
 import argparse
 import pickle as pkl
 from sklearn.preprocessing import MinMaxScaler
@@ -39,7 +41,8 @@ def create_autoencoder_visualization(x_train: np.ndarray, x_test: np.ndarray, y_
     :return: two arrays containing the coordinates of the real and fake datapoints, respectively
     """
 
-    encoder, autoencoder = models.get_model('autoencoder_2layer_bn')({'base_layer_size': 64, 'input_seq_length': 24})
+    encoder, autoencoder = models.get_model('autoencoder_2layer_bn')({'base_layer_size': 64,
+                                                                      'input_seq_length': x_train.shape[1]})
 
     autoencoder.fit(x_train, x_train, epochs=epochs)
 
@@ -130,11 +133,13 @@ def from_features(func: Callable) -> Callable:
     def inner(x_train, x_test, y_train, y_test, *args, **kwargs):
 
         train_feats = extract_features(x_train)
-        test_feats = extract_features(x_train)
+        test_feats = extract_features(x_test)
+
+        na_cols = pd.concat([train_feats, test_feats]).isna().any()
 
         scaler = MinMaxScaler()
-        x_train = scaler.fit_transform(x_train)
-        x_test = scaler.transform(x_test)
+        x_train = scaler.fit_transform(train_feats.loc[:, ~na_cols])
+        x_test = scaler.transform(test_feats.loc[:, ~na_cols])
 
         return func(x_train, x_test, y_train, y_test, *args, **kwargs)
 
@@ -161,7 +166,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     samples_dir = 'samples/{}_{}/'.format(args.name, args.dset)
-    result_dir = 'results/{}_{}/'.format(args.name, args.dset)
+    report_dir = 'reports/{}_{}/'.format(args.name, args.dset)
     if args.samples_epoch is None:
         samples_file = evaluation.find_last_samples_file(samples_dir)
     else:
@@ -173,8 +178,8 @@ if __name__ == '__main__':
 
     if args.type.lower() in ('ae', 'all'):
         print('Training Autoencoder for visualization...')
-        r_2d, f_2d = create_autoencoder_visualization_from_files(args.dset, samples_file, args.epochs)
-        results['ae_raw'] = (r_2d, f_2d)
+        # r_2d, f_2d = create_autoencoder_visualization_from_files(args.dset, samples_file, args.epochs)
+        # results['ae_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_features(args.dset, samples_file, args.epochs)
         results['ae_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('pca', 'all'):
@@ -190,8 +195,8 @@ if __name__ == '__main__':
         r_2d, f_2d = create_tsne_visualization_from_features(args.dset, samples_file)
         results['tsne_feats'] = (r_2d, f_2d)
 
-    if not os.path.isdir(result_dir):
-        os.makedirs(result_dir)
+    if not os.path.isdir(report_dir):
+        os.makedirs(report_dir)
 
-    with open(result_dir + '2d_projections.pkl', 'wb') as f:
+    with open(report_dir + '2d_projections.pkl', 'wb') as f:
         pkl.dump(results, f)
