@@ -178,8 +178,8 @@ if __name__ == '__main__':
 
     if args.type.lower() in ('ae', 'all'):
         print('Training Autoencoder for visualization...')
-        # r_2d, f_2d = create_autoencoder_visualization_from_files(args.dset, samples_file, args.epochs)
-        # results['ae_raw'] = (r_2d, f_2d)
+        r_2d, f_2d = create_autoencoder_visualization_from_files(args.dset, samples_file, args.epochs)
+        results['ae_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_features(args.dset, samples_file, args.epochs)
         results['ae_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('pca', 'all'):
