@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 import datasets
 import models
 
-dataset_name = '14k'
+dataset_name = '235k'
 name = 'wasserstein_lstm_complex'
 batch_size = 512
 num_blocks = 3
