@@ -7,29 +7,33 @@ import sys
 
 sys.path.append(os.getcwd())
 import datasets
-from models.gan import generators, discriminators
+from models.cgan import generators, discriminators
 
 
-class GAN(tf.keras.Model):
+class cGAN(tf.keras.Model):
     """
     https://github.com/timsainb/tensorflow2-generative-models/blob/master/2.0-GAN-fashion-mnist.ipynb
     """
 
     def __init__(self, **kwargs):
-        super(GAN, self).__init__()
+        super(cGAN, self).__init__()
         self.__dict__.update(kwargs)
 
-    def generate(self, z):
-        return self.gen(z)
+    @staticmethod
+    def prepare_input(original_input, condition):
+        return np.concatenate([original_input, condition])
 
-    def discriminate(self, x):
-        return self.disc(x)
+    def generate(self, z, condition):
+        return self.gen(self.prepare_input(z, condition))
 
-    def generate_n_samples(self, n):
+    def discriminate(self, x, condition):
+        return self.disc(self.prepare_input(x, condition))
+
+    def generate_n_samples(self, n, condition):
         z = tf.random.normal([n, self.latent_size])
-        return self.generate(z)
+        return self.generate(z, condition)
 
-    def compute_loss(self, x):
+    def compute_loss(self, x, condition):
         """ passes through the network and computes loss
         """
 
@@ -37,10 +41,10 @@ class GAN(tf.keras.Model):
         z_samp = tf.random.normal([tf.shape(x)[0], self.latent_size])
 
         # run noise through generator
-        x_gen = self.generate(z_samp)
+        x_gen = self.generate(z_samp, condition)
         # discriminate x and x_gen
-        logits_x = self.discriminate(x)
-        logits_x_gen = self.discriminate(x_gen)
+        logits_x = self.discriminate(x, condition)
+        logits_x_gen = self.discriminate(x_gen, condition)
 
 
         ### losses
@@ -56,13 +60,13 @@ class GAN(tf.keras.Model):
 
         return disc_loss, gen_loss
 
-    def compute_gradients(self, x):
+    def compute_gradients(self, x, condition):
         """ passes through the network and computes loss
         """
 
         ### pass through network
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-            disc_loss, gen_loss = self.compute_loss(x)
+            disc_loss, gen_loss = self.compute_loss(x, condition)
 
         # compute gradients
         gen_gradients = gen_tape.gradient(gen_loss, self.gen.trainable_variables)
@@ -87,8 +91,8 @@ class GAN(tf.keras.Model):
 
         return tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
 
-    def train_single_batch(self, x):
-        gen_gradients, disc_gradients = self.compute_gradients(x)
+    def train_single_batch(self, x, condition):
+        gen_gradients, disc_gradients = self.compute_gradients(x, condition)
         self.apply_gradients(gen_gradients, disc_gradients)
 
     def save_models(self, result_dir, epoch):
@@ -109,8 +113,8 @@ class GAN(tf.keras.Model):
 
         for epoch in tqdm(range(epochs)):
 
-            for i, x in enumerate(train_generator):
-                self.train_single_batch(x)
+            for i, (x, condition) in enumerate(train_generator):
+                self.train_single_batch(x, condition)
                 if i >= train_steps:
                     break
 
@@ -118,8 +122,8 @@ class GAN(tf.keras.Model):
                 self.save_models(result_dir, epoch)
 
             g_loss, d_loss = [], []
-            for i, x in enumerate(valid_generator):
-                g, d = self.compute_loss(x)
+            for i, (x, condition) in enumerate(valid_generator):
+                g, d = self.compute_loss(x, condition)
                 g_loss.append(g.numpy().mean())
                 d_loss.append(d.numpy().mean())
                 if i >= valid_steps:
@@ -131,36 +135,6 @@ class GAN(tf.keras.Model):
         return g_losses, d_losses
 
 
-def make_vanilla_conv(hparams):
-
-    generator = generators.create_conv_generator_simple(hparams)
-
-    discriminator = discriminators.create_conv_discriminator_simple(hparams)
-
-    gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
-    disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
-
-    gan = GAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
-              latent_size=hparams['latent_size'])
-
-    return gan
-
-
-def make_vanilla_lstm_small(hparams):
-
-    generator = generators.create_lstm_generator_simple(hparams)
-
-    discriminator = discriminators.create_lstm_discriminator_simple(hparams)
-
-    gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
-    disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
-
-    gan = GAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
-              latent_size=hparams['latent_size'])
-
-    return gan
-
-
 def make_vanilla_lstm_large(hparams):
 
     generator = generators.create_lstm_generator_large(hparams)
@@ -170,21 +144,14 @@ def make_vanilla_lstm_large(hparams):
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
 
-    gan = GAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
-              latent_size=hparams['latent_size'])
+    cgan = cGAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
+                latent_size=hparams['latent_size'])
 
-    return gan
+    return cgan
 
 
 if __name__ == '__main__':
-
     hparams = {'latent_size': 5, 'output_seq_len': 24}
-
-    generator = create_conv_generator_simple(hparams)
-    generator.summary()
-
-    discriminator = create_conv_discriminator_simple(hparams)
-    discriminator.summary()
 
     generator = create_lstm_generator_large(hparams)
     generator.summary()
@@ -192,7 +159,6 @@ if __name__ == '__main__':
     discriminator = create_lstm_discriminator_large(hparams)
     discriminator.summary()
 
-    # optimizers
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
 
@@ -203,10 +169,8 @@ if __name__ == '__main__':
     train_path = 'data/yearly_24_nw_train.h5'
     test_path = 'data/yearly_24_nw_test.h5'
 
-    batch_size = 512
-
-    train_gen = datasets.gan_generator(train_path, batch_size=batch_size, shuffle=True)
-    test_gen = datasets.gan_generator(test_path, batch_size=batch_size, shuffle=True)
+    train_gen = datasets.cgan_generator(train_path, batch_size=batch_size, shuffle=True)
+    test_gen = datasets.cgan_generator(test_path, batch_size=batch_size, shuffle=True)
 
     g_losses, d_losses = gan.train(train_gen, test_gen,
                                   train_steps=len(train_gen) // batch_size + 1,
