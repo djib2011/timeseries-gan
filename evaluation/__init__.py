@@ -3,19 +3,20 @@ Evaluation scheme is based on TimeGAN:
 https://papers.nips.cc/paper/2019/file/c9efe5f26cd17ba6216bbe2a7d26d490-Paper.pdf
 https://github.com/jsyoon0823/TimeGAN/tree/master/metrics
 """
+
 import os
 import sys
-# os.chdir(os.getcwd())
 sys.path.append(os.getcwd())
 
 from evaluation.common import *
 from evaluation import discriminative, predictive, visualization
 
+
 def to_string(args):
     return ' '.join([str(a) for a in args])
 
+
 if __name__ == '__main__':
-    # pass
     import argparse
     import subprocess
 

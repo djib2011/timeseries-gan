@@ -14,14 +14,7 @@ sys.path.append(os.getcwd())
 
 import models
 import evaluation
-
-
-def extract_features(arr):
-    long_df = pd.DataFrame({'ind': [i for series_id in range(arr.shape[0]) for i in [series_id] * arr.shape[1]],
-                            'time': list(range(arr.shape[1])) * arr.shape[0],
-                            'values': arr.flatten()})
-
-    return tsfresh.extract_features(long_df, column_id='ind', column_sort='time')
+from datasets import extract_features
 
 
 def create_autoencoder_visualization(x_train: np.ndarray, x_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray,
