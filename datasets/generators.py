@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import h5py
+from sklearn.preprocessing import MinMaxScaler
 
 
 def seq2seq_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) -> tf.data.Dataset:
@@ -48,7 +49,10 @@ def gan_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) -
         x = np.array(hf.get('X'))
         y = np.array(hf.get('y'))
 
-    combined = np.c_[x, y][..., np.newaxis]
+    combined = np.c_[x, y]
+
+    sc_train = MinMaxScaler()
+    combined = sc_train.fit_transform(combined.T).T[..., np.newaxis]
 
     # Tensorflow dataset
     data = tf.data.Dataset.from_tensor_slices(combined)

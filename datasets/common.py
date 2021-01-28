@@ -3,6 +3,7 @@ import pandas as pd
 import h5py
 from pathlib import Path
 from typing import Union
+import tsfresh
 
 
 def get_last_N(series: Union[pd.Series, np.ndarray], N: int = 18):
@@ -59,3 +60,28 @@ def normalize_data(data):
     mn = data[:, :-6].min(axis=1).reshape(-1, 1)
 
     return (data - mn) / (mx - mn + np.finfo('float').eps)
+
+
+def h5_to_npy(h5_file: str):
+    """
+    Convert an h5 file to a npy file.
+
+    :param h5_file: location of the h5 data
+    """
+
+    with h5py.File(h5_file, 'r') as hf:
+        data = np.array(hf.get('X'))
+
+    npy_file = h5_file[:-3] + '.npy'
+
+    print('Converting data from "{}" to "{}"'.format(h5_file, npy_file))
+
+    np.save(npy_file, data)
+
+
+def extract_features(arr):
+    long_df = pd.DataFrame({'ind': [i for series_id in range(arr.shape[0]) for i in [series_id] * arr.shape[1]],
+                            'time': list(range(arr.shape[1])) * arr.shape[0],
+                            'values': arr.flatten()})
+
+    return tsfresh.extract_features(long_df, column_id='ind', column_sort='time')
