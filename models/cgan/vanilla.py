@@ -19,18 +19,14 @@ class cGAN(tf.keras.Model):
         super(cGAN, self).__init__()
         self.__dict__.update(kwargs)
 
-    @staticmethod
-    def prepare_input(original_input, condition):
-        return np.concatenate([original_input, condition])
-
     def generate(self, z, condition):
-        return self.gen(self.prepare_input(z, condition))
+        return self.gen((z, condition))
 
     def discriminate(self, x, condition):
-        return self.disc(self.prepare_input(x, condition))
+        return self.disc((x, condition))
 
     def generate_n_samples(self, n, condition):
-        z = tf.random.normal([n, self.latent_size])
+        z = tf.random.normal([n, self.latent_size, condition.shape[1]])
         return self.generate(z, condition)
 
     def compute_loss(self, x, condition):
@@ -151,20 +147,21 @@ def make_vanilla_lstm_large(hparams):
 
 
 if __name__ == '__main__':
-    hparams = {'latent_size': 5, 'output_seq_len': 24}
+    hparams = {'latent_size': 5, 'output_seq_len': 24, 'condition_size': 11}
+    batch_size = 512
 
-    generator = create_lstm_generator_large(hparams)
+    generator = generators.create_lstm_generator_large(hparams)
     generator.summary()
 
-    discriminator = create_lstm_discriminator_large(hparams)
+    discriminator = discriminators.create_lstm_discriminator_large(hparams)
     discriminator.summary()
 
     gen_optimizer = tf.keras.optimizers.Adam(0.001, beta_1=0.5)
     disc_optimizer = tf.keras.optimizers.RMSprop(0.005)
 
     # model
-    gan = GAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
-              latent_size=5)
+    gan = cGAN(gen=generator, disc=discriminator, gen_optimizer=gen_optimizer, disc_optimizer=disc_optimizer,
+               latent_size=5)
 
     train_path = 'data/yearly_24_nw_train.h5'
     test_path = 'data/yearly_24_nw_test.h5'
@@ -173,7 +170,7 @@ if __name__ == '__main__':
     test_gen = datasets.cgan_generator(test_path, batch_size=batch_size, shuffle=True)
 
     g_losses, d_losses = gan.train(train_gen, test_gen,
-                                  train_steps=len(train_gen) // batch_size + 1,
-                                  valid_steps=len(train_gen) // batch_size + 1,
-                                  result_dir='/tmp/gan_vanilla/',
-                                  save_weights=False)
+                                   train_steps=len(train_gen) // batch_size + 1,
+                                   valid_steps=len(train_gen) // batch_size + 1,
+                                   result_dir='/tmp/gan_vanilla/',
+                                   save_weights=False)
