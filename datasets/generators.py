@@ -3,6 +3,11 @@ import tensorflow as tf
 import h5py
 from sklearn.preprocessing import MinMaxScaler
 
+import sys
+sys.path.append('..')
+
+import datasets
+
 
 def seq2seq_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) -> tf.data.Dataset:
     """
@@ -81,9 +86,9 @@ def cgan_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) 
         x = np.array(hf.get('X'))
         y = np.array(hf.get('y'))
 
-    combined = np.c_[x, y][..., np.newaxis]
+    combined = np.c_[x, y]
 
-    features = datasets.extract_features(combined)
+    features = datasets.extract_features(combined).values[:, :11, np.newaxis]
 
     # Tensorflow dataset
     data = tf.data.Dataset.from_tensor_slices((combined, features))
