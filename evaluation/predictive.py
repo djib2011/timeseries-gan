@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--name', type=str, help='Name of the model to load.')
     parser.add_argument('-d', '--dset', type=str, help='Name of the dataset used to train the model.')
     parser.add_argument('-e', '--epochs', type=int, default=10, help='Number of epochs to train discriminator.')
-    parser.add_argument('-se', '--samples-epoch', type=int, default=None, help='What epoch to get samples from.')
+    parser.add_argument('-ge', '--samples-epoch', type=int, default=None, help='What epoch to get samples from.')
     args = parser.parse_args()
 
     print(dir(args))
@@ -114,5 +114,5 @@ if __name__ == '__main__':
     if not os.path.isdir(report_dir):
         os.makedirs(report_dir)
 
-    with open(report_dir + 'predictive_evaluation.txt', 'w') as f:
+    with open(report_dir + 'predictive_evaluation_epoch_{}.txt'.format(args.samples_epoch), 'w') as f:
         f.write(out)
