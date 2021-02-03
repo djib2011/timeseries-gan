@@ -25,8 +25,8 @@ class cGAN(tf.keras.Model):
     def discriminate(self, x, condition):
         return self.disc((x, condition))
 
-    def generate_n_samples(self, n, condition):
-        z = tf.random.normal([n, self.latent_size, condition.shape[1]])
+    def generate_n_samples(self, condition):
+        z = tf.random.normal([condition.shape[0], self.latent_size, condition.shape[1]])
         return self.generate(z, condition)
 
     def compute_loss(self, x, condition):
@@ -147,7 +147,7 @@ def make_vanilla_lstm_large(hparams):
 
 
 if __name__ == '__main__':
-    hparams = {'latent_size': 5, 'output_seq_len': 24, 'condition_size': 11}
+    hparams = {'latent_size': 5, 'output_seq_len': 24, 'condition_size': 10}
     batch_size = 512
 
     generator = generators.create_lstm_generator_large(hparams)
@@ -165,9 +165,11 @@ if __name__ == '__main__':
 
     train_path = 'data/yearly_24_nw_train.h5'
     test_path = 'data/yearly_24_nw_test.h5'
+    train_feats_path = 'data/yearly_24_nw_feats_train.h5'
+    test_feats_path = 'data/yearly_24_nw_feats_test.h5'
 
-    train_gen = datasets.cgan_generator(train_path, batch_size=batch_size, shuffle=True)
-    test_gen = datasets.cgan_generator(test_path, batch_size=batch_size, shuffle=True)
+    train_gen = datasets.cgan_generator(train_path, train_feats_path, batch_size=batch_size, shuffle=True)
+    test_gen = datasets.cgan_generator(test_path, test_feats_path, batch_size=batch_size, shuffle=True)
 
     g_losses, d_losses = gan.train(train_gen, test_gen,
                                    train_steps=len(train_gen) // batch_size + 1,
