@@ -77,6 +77,7 @@ def cgan_generator(data_path: str, features_path: str, batch_size: int = 256, sh
     Factory for building TensorFlow data generators for loading time series and their extracted features.
 
     :param data_path: Path of a HDF5 file that contains X and y
+    :param features_path: Path of the an HDF5 file containing the corresponding features for the data
     :param batch_size: The batch size
     :param shuffle: True/False whether or not the data will be shuffled.
     :return: A TensorFlow data generator.
@@ -105,6 +106,40 @@ def cgan_generator(data_path: str, features_path: str, batch_size: int = 256, sh
     data.__class__ = type(data.__class__.__name__, (data.__class__,), {'__len__': lambda self: len(x)})
     return data
 
+
+def cgan_generator_2(data_path: str, features_path: str, batch_size: int = 256, shuffle: bool = True) -> tf.data.Dataset:
+    """
+    Factory for building TensorFlow data generators for loading time series and their extracted features.
+
+    :param data_path: Path of a HDF5 file that contains X and y
+    :param features_path: Path of the an HDF5 file containing the corresponding features for the data
+    :param batch_size: The batch size
+    :param shuffle: True/False whether or not the data will be shuffled.
+    :return: A TensorFlow data generator.
+    """
+
+    # Load data
+    with h5py.File(data_path, 'r') as hf:
+        x = np.array(hf.get('X'))
+        y = np.array(hf.get('y'))
+
+    combined = np.c_[x, y][:, :2]
+
+    with h5py.File(features_path, 'r') as hf:
+        features = np.array(hf.get('X'))
+
+    # features = datasets.extract_features(combined).values[:, :11, np.newaxis]
+
+    # Tensorflow dataset
+    data = tf.data.Dataset.from_tensor_slices((combined, features))
+    if shuffle:
+        data = data.shuffle(buffer_size=len(x))
+    data = data.repeat()
+    data = data.batch(batch_size=batch_size)
+    data = data.prefetch(buffer_size=1)
+
+    data.__class__ = type(data.__class__.__name__, (data.__class__,), {'__len__': lambda self: len(x)})
+    return data
 
 if __name__ == '__main__':
 

@@ -10,9 +10,9 @@ import models
 
 dataset_name = '14k'
 
-name = 'vanilla_lstm_large_cgan'
+name = 'vanilla_lstm_large_cgan_2'
 batch_size = 512
-epochs = 100
+epochs = 50
 result_dir = 'results/{}_{}/'.format(name, dataset_name)
 report_dir = 'reports/{}_{}/'.format(name, dataset_name)
 

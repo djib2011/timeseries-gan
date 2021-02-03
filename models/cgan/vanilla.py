@@ -26,7 +26,7 @@ class cGAN(tf.keras.Model):
         return self.disc((x, condition))
 
     def generate_n_samples(self, condition):
-        z = tf.random.normal([condition.shape[0], self.latent_size, condition.shape[1]])
+        z = tf.random.normal([condition.shape[0], self.latent_size])
         return self.generate(z, condition)
 
     def compute_loss(self, x, condition):
