@@ -4,7 +4,8 @@ import h5py
 from sklearn.preprocessing import MinMaxScaler
 
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.getcwd())
 
 import datasets
 
@@ -71,7 +72,7 @@ def gan_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) -
     return data
 
 
-def cgan_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) -> tf.data.Dataset:
+def cgan_generator(data_path: str, features_path: str, batch_size: int = 256, shuffle: bool = True) -> tf.data.Dataset:
     """
     Factory for building TensorFlow data generators for loading time series and their extracted features.
 
@@ -88,7 +89,10 @@ def cgan_generator(data_path: str, batch_size: int = 256, shuffle: bool = True) 
 
     combined = np.c_[x, y]
 
-    features = datasets.extract_features(combined).values[:, :11, np.newaxis]
+    with h5py.File(features_path, 'r') as hf:
+        features = np.array(hf.get('X'))
+
+    # features = datasets.extract_features(combined).values[:, :11, np.newaxis]
 
     # Tensorflow dataset
     data = tf.data.Dataset.from_tensor_slices((combined, features))
@@ -127,4 +131,13 @@ if __name__ == '__main__':
     for x in test_gen:
         print('Test set:')
         print(x.shape)
+        break
+
+    feats_train_path = 'data/yearly_24_nw_feats_train.h5'
+
+    train_gen = cgan_generator(train_path, feats_train_path, batch_size=1024, shuffle=True)
+
+    for x, f in train_gen:
+        print('Train set:')
+        print(x.shape, f.shape)
         break
