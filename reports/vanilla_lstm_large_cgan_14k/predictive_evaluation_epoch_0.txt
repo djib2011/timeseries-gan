@@ -1,0 +1,17 @@
+Real targets, real training set:
+MAE:   0.100
+MSE:   0.025
+MAPE:  inf
+sMAPE: 23.153
+
+Real targets, fake training set:
+MAE:   0.745
+MSE:   0.690
+MAPE:  nan
+sMAPE: 192.454
+
+Real targets, combined training set:
+MAE:   0.786
+MSE:   0.698
+MAPE:  inf
+sMAPE: 200.000
