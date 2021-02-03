@@ -54,10 +54,24 @@ def load_test_set(data_dir: Union[Path, str] = 'data'):
     return X_test, y_test
 
 
-def normalize_data(data):
+def normalize_insample(data):
 
     mx = data[:, :-6].max(axis=1).reshape(-1, 1)
     mn = data[:, :-6].min(axis=1).reshape(-1, 1)
+
+    if int(mx.max()) == 1 and int(mn.min()) == 0:
+        return data
+
+    return (data - mn) / (mx - mn + np.finfo('float').eps)
+
+
+def normalize_data(data):
+
+    mx = data.max(axis=1).reshape(-1, 1)
+    mn = data.min(axis=1).reshape(-1, 1)
+
+    if int(mx.max()) == 1 and int(mn.min()) == 0:
+        return data
 
     return (data - mn) / (mx - mn + np.finfo('float').eps)
 
