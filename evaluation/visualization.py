@@ -139,6 +139,36 @@ def from_features(func: Callable) -> Callable:
     return inner
 
 
+def from_R_features(func: Callable) -> Callable:
+    """
+    Takes the patterns of the real and fake feature paths, scales them and feeds them to 'func'
+    (intended to be one of the visualization functions)
+
+    :param func: function to wrap
+    :return: wrapped functions
+    """
+
+    def inner(real_features_pattern, fake_features_pattern):
+
+        real_train = pd.read_csv(real_features_pattern + '_train.csv').values
+        real_test = pd.read_csv(real_features_pattern + '_test.csv').values
+        fake_train = pd.read_csv(fake_features_pattern + '_train.csv').values
+        fake_test = pd.read_csv(fake_features_pattern + '_test.csv').values
+
+        x_train = np.r_[real_train, fake_train]
+        y_train = np.array([1] * len(real_train) + [0] * len(fake_train))
+        x_test = np.r_[real_test, fake_test]
+        y_test = np.array([1] * len(real_test) + [0] * len(fake_test))
+
+        scaler = MinMaxScaler()
+        x_train = scaler.fit_transform(x_train)
+        x_test = scaler.transform(x_test)
+
+        return func(x_train, x_test, y_train, y_test)
+
+    return inner
+
+
 create_autoencoder_visualization_from_files = from_files(create_autoencoder_visualization)
 create_pca_visualization_from_files = from_files(create_pca_visualization)
 create_tsne_visualization_from_files = from_files(create_tsne_visualization)
@@ -147,6 +177,9 @@ create_autoencoder_visualization_from_features = from_files(from_features(create
 create_pca_visualization_from_features = from_files(from_features(create_pca_visualization))
 create_tsne_visualization_from_features = from_files(from_features(create_tsne_visualization))
 
+create_autoencoder_visualization_from_R_features = from_R_features(create_autoencoder_visualization)
+create_pca_visualization_from_R_features = from_R_features(create_pca_visualization)
+create_tsne_visualization_from_R_features = from_R_features(create_tsne_visualization)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -159,11 +192,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     samples_dir = 'samples/{}_{}/'.format(args.name, args.dset)
+    features_dir = 'features/{}_{}/'.format(args.name, args.dset)
     report_dir = 'reports/{}_{}/'.format(args.name, args.dset)
+
+
     if args.samples_epoch is None:
         samples_file = evaluation.find_last_samples_file(samples_dir)
+        raise NotImplementedError('Can\'t find last features file.')
     else:
         samples_file = samples_dir + 'samples_epoch_{}.h5'.format(args.samples_epoch)
+        features_pattern = features_dir + 'features_epoch_{}'.format(args.samples_epoch)
 
     print('Getting samples from:', samples_file)
 
@@ -175,21 +213,27 @@ if __name__ == '__main__':
         results['ae_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_features(args.dset, samples_file, args.epochs)
         results['ae_feats'] = (r_2d, f_2d)
+        r_2d, f_2d = create_autoencoder_visualization_from_R_features(features_pattern)
+        results['ae_R_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('pca', 'all'):
         print('Fitting PCA for visualization...')
         r_2d, f_2d = create_pca_visualization_from_files(args.dset, samples_file)
         results['pca_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_pca_visualization_from_features(args.dset, samples_file)
         results['pca_feats'] = (r_2d, f_2d)
+        r_2d, f_2d = create_pca_visualization_from_R_features(features_pattern)
+        results['pca_R_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('tsne', 'all'):
         print('Fitting t-SNE for visualization...')
         r_2d, f_2d = create_tsne_visualization_from_files(args.dset, samples_file)
         results['tsne_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_tsne_visualization_from_features(args.dset, samples_file)
         results['tsne_feats'] = (r_2d, f_2d)
+        r_2d, f_2d = create_tsne_visualization_from_R_features(features_pattern)
+        results['tsne_R_feats'] = (r_2d, f_2d)
 
     if not os.path.isdir(report_dir):
         os.makedirs(report_dir)
 
-    with open(report_dir + '2d_projections.pkl', 'wb') as f:
+    with open(report_dir + '2d_projections_{}.pkl'.format(args.samples_epoch), 'wb') as f:
         pkl.dump(results, f)
