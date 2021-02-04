@@ -29,10 +29,7 @@ def extract_R_features(data: np.ndarray) -> np.ndarray:
     :return: the extracted features
     """
 
-    print('max={}, min={}'.format(data.max(), data.min()))
-
     data = datasets.normalize_data(data)
-    print('max={}, min={}'.format(data.max(), data.min()))
 
     pd.DataFrame(data).to_csv('/tmp/series.csv', header=False, index=False)
 
@@ -113,10 +110,10 @@ if __name__ == '__main__':
     if not Path(target_dir).is_dir():
         os.makedirs(target_dir)
 
-    with h5py.File(target_dir + 'features_epoch_{}_train.h5'.format(args.epoch)) as hf:
+    with h5py.File(target_dir + 'features_epoch_{}_train.h5'.format(args.epoch), 'w') as hf:
         hf.create_dataset('X', data=train_feats)
         hf.create_dataset('y', data=train_labels)
 
-    with h5py.File(target_dir + 'features_epoch_{}_test.h5'.format(args.epoch)) as hf:
+    with h5py.File(target_dir + 'features_epoch_{}_test.h5'.format(args.epoch),  'w') as hf:
         hf.create_dataset('X', data=test_feats)
         hf.create_dataset('y', data=test_labels)

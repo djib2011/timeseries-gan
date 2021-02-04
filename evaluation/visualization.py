@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import h5py
 import os
 import sys
 import tsfresh
@@ -14,7 +15,7 @@ sys.path.append(os.getcwd())
 
 import models
 import evaluation
-from datasets import extract_features
+import datasets
 
 
 def create_autoencoder_visualization(x_train: np.ndarray, x_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray,
@@ -125,8 +126,8 @@ def from_features(func: Callable) -> Callable:
     """
     def inner(x_train, x_test, y_train, y_test, *args, **kwargs):
 
-        train_feats = extract_features(x_train)
-        test_feats = extract_features(x_test)
+        train_feats = datasets.extract_features(x_train)
+        test_feats = datasets.extract_features(x_test)
 
         na_cols = pd.concat([train_feats, test_feats]).isna().any()
 
@@ -148,23 +149,21 @@ def from_R_features(func: Callable) -> Callable:
     :return: wrapped functions
     """
 
-    def inner(real_features_pattern, fake_features_pattern):
+    def inner(features_dir, samples_epoch, epochs):
 
-        real_train = pd.read_csv(real_features_pattern + '_train.csv').values
-        real_test = pd.read_csv(real_features_pattern + '_test.csv').values
-        fake_train = pd.read_csv(fake_features_pattern + '_train.csv').values
-        fake_test = pd.read_csv(fake_features_pattern + '_test.csv').values
+        with h5py.File(features_dir + 'features_epoch_{}_train.h5'.format(samples_epoch), 'r') as hf:
+            x_train = np.array(hf.get('X'))
+            y_train = np.array(hf.get('y'))
 
-        x_train = np.r_[real_train, fake_train]
-        y_train = np.array([1] * len(real_train) + [0] * len(fake_train))
-        x_test = np.r_[real_test, fake_test]
-        y_test = np.array([1] * len(real_test) + [0] * len(fake_test))
+        with h5py.File(features_dir + 'features_epoch_{}_test.h5'.format(samples_epoch), 'r') as hf:
+            x_test = np.array(hf.get('X'))
+            y_test = np.array(hf.get('y'))
 
         scaler = MinMaxScaler()
         x_train = scaler.fit_transform(x_train)
         x_test = scaler.transform(x_test)
 
-        return func(x_train, x_test, y_train, y_test)
+        return func(x_train, x_test, y_train, y_test, epochs=epochs)
 
     return inner
 
@@ -201,7 +200,6 @@ if __name__ == '__main__':
         raise NotImplementedError('Can\'t find last features file.')
     else:
         samples_file = samples_dir + 'samples_epoch_{}.h5'.format(args.samples_epoch)
-        features_pattern = features_dir + 'features_epoch_{}'.format(args.samples_epoch)
 
     print('Getting samples from:', samples_file)
 
@@ -209,19 +207,19 @@ if __name__ == '__main__':
 
     if args.type.lower() in ('ae', 'all'):
         print('Training Autoencoder for visualization...')
+        r_2d, f_2d = create_autoencoder_visualization_from_R_features(features_dir, args.samples_epoch, args.epochs)
+        results['ae_R_feats'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_files(args.dset, samples_file, args.epochs)
         results['ae_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_features(args.dset, samples_file, args.epochs)
         results['ae_feats'] = (r_2d, f_2d)
-        r_2d, f_2d = create_autoencoder_visualization_from_R_features(features_pattern)
-        results['ae_R_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('pca', 'all'):
         print('Fitting PCA for visualization...')
         r_2d, f_2d = create_pca_visualization_from_files(args.dset, samples_file)
         results['pca_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_pca_visualization_from_features(args.dset, samples_file)
         results['pca_feats'] = (r_2d, f_2d)
-        r_2d, f_2d = create_pca_visualization_from_R_features(features_pattern)
+        r_2d, f_2d = create_pca_visualization_from_R_features(features_dir, args.samples_epoch)
         results['pca_R_feats'] = (r_2d, f_2d)
     if args.type.lower() in ('tsne', 'all'):
         print('Fitting t-SNE for visualization...')
@@ -229,7 +227,7 @@ if __name__ == '__main__':
         results['tsne_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_tsne_visualization_from_features(args.dset, samples_file)
         results['tsne_feats'] = (r_2d, f_2d)
-        r_2d, f_2d = create_tsne_visualization_from_R_features(features_pattern)
+        r_2d, f_2d = create_tsne_visualization_from_R_features(features_dir, args.samples_epoch)
         results['tsne_R_feats'] = (r_2d, f_2d)
 
     if not os.path.isdir(report_dir):
