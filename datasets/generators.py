@@ -141,6 +141,7 @@ def cgan_generator_2(data_path: str, features_path: str, batch_size: int = 256, 
     data.__class__ = type(data.__class__.__name__, (data.__class__,), {'__len__': lambda self: len(x)})
     return data
 
+
 if __name__ == '__main__':
 
     data_path = 'data/yearly_24_nw.h5'
