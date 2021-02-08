@@ -6,16 +6,80 @@ import sys
 import tsfresh
 import argparse
 import pickle as pkl
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 from sklearn.manifold import TSNE
-from typing import Callable
+from scipy.stats import gaussian_kde
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import Callable, Union
 
 sys.path.append(os.getcwd())
 
 import models
 import evaluation
 import datasets
+
+
+def train_pca_on_foredeck(fd_features_path: str, target_path: str = 'features/foredeck/trained_pca.pkl') -> Pipeline:
+    """
+    Create a sklearn pipeline with a StandardScaler and a PCA and train it on Foredeck
+
+    :param fd_features_path: path where foredeck features are stored as an hdf5 file
+    :param target_path: path where the trained pipeline will be stored. If none the pipeline won't be saved
+    :return: the trained pipeline
+    """
+
+    scaler = StandardScaler()
+    pca = PCA(n_components=2)
+    pipe = Pipeline([('scaler', scaler),  ('pca', pca)])
+
+    with h5py.File(fd_features_path, 'r') as hf:
+        fd = np.array(hf.get('X'))
+
+    missing = np.where(np.isnan(fd))[0]
+    if len(missing) > 0:
+        print('Found {} rows with missing values.'.format(len(missing)))
+
+        print('Original shape:', fd.shape)
+        fd = np.delete(fd, missing, axis=0)
+        print('Shape after drop:', fd.shape)
+
+    pipe.fit(fd)
+
+    print('Foredeck variance explained by first two components: '
+          '{:.2f}%'.format(pipe['pca'].explained_variance_ratio_.sum() * 100))
+
+    if target_path:
+        with open(target_path, 'wb') as f:
+            pkl.dump(pipe, f)
+
+    return pipe
+
+
+def foredeck_projection(features: np.ndarray, pipeline: Union[str, Pipeline]) -> np.ndarray:
+    """
+    Project the given data on a 2D PCA space, generated from foredeck
+
+    :param features: the data that we want to project on to the foredeck space
+    :param pipeline: trained pipeline or path to a stored pipeline
+    :return: the 2D projections of the data
+    """
+
+    if isinstance(pipeline, str):
+        with open(pipeline, 'rb') as f:
+            pipeline = pkl.load(f)
+
+    missing = np.where(np.isnan(features))[0]
+    if len(missing) > 0:
+        print('Found {} rows with missing values.'.format(len(missing)))
+
+        print('Original shape:', features.shape)
+        features = np.delete(features, missing, axis=0)
+        print('Shape after drop:', features.shape)
+
+    return pipeline.transform(features)
 
 
 def create_autoencoder_visualization(x_train: np.ndarray, x_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray,
@@ -131,7 +195,7 @@ def from_features(func: Callable) -> Callable:
 
         na_cols = pd.concat([train_feats, test_feats]).isna().any()
 
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
         x_train = scaler.fit_transform(train_feats.loc[:, ~na_cols])
         x_test = scaler.transform(test_feats.loc[:, ~na_cols])
 
@@ -149,7 +213,7 @@ def from_R_features(func: Callable) -> Callable:
     :return: wrapped functions
     """
 
-    def inner(features_dir, samples_epoch, epochs):
+    def inner(features_dir, samples_epoch, *args, **kwargs):
 
         with h5py.File(features_dir + 'features_epoch_{}_train.h5'.format(samples_epoch), 'r') as hf:
             x_train = np.array(hf.get('X'))
@@ -159,13 +223,103 @@ def from_R_features(func: Callable) -> Callable:
             x_test = np.array(hf.get('X'))
             y_test = np.array(hf.get('y'))
 
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
         x_train = scaler.fit_transform(x_train)
         x_test = scaler.transform(x_test)
 
-        return func(x_train, x_test, y_train, y_test, epochs=epochs)
+        return func(x_train, x_test, y_train, y_test, *args, **kwargs)
 
     return inner
+
+
+def scatterplot(projections, file_to_save=None):
+    real_2d, fake_2d = projections
+
+    r_x, r_y = real_2d.T
+    f_x, f_y = fake_2d.T
+
+    plt.figure(figsize=(8, 8))
+
+    ax = plt.subplot(111)
+
+    ax.scatter(r_x, r_y, alpha=0.5, label='real')
+    ax.scatter(f_x, f_y, alpha=0.5, label='fake', c='C2')
+
+    ax.axis('off')
+    ax.legend()
+
+    if file_to_save:
+        plt.savefig(file_to_save, bbox_inches='tight')
+
+    return ax
+
+
+def jointplot(projections, file_to_save=None, xlabel='x', ylabel='y'):
+    real_2d, fake_2d = projections
+
+    r_x, r_y = real_2d.T
+    f_x, f_y = fake_2d.T
+
+    df = pd.DataFrame({xlabel: np.r_[r_x, f_x], ylabel: np.r_[r_y, f_y],
+                       'type': ['real'] * len(r_x) + ['fake'] * len(f_x)})
+
+    sns.jointplot(data=df, x=xlabel, y=ylabel, hue='type')
+
+    if file_to_save:
+        plt.savefig(file_to_save, bbox_inches='tight')
+
+
+def densityplot(projections, file_to_save=None, xlabel='x', ylabel='y'):
+    real_2d, fake_2d = projections
+
+    r_x, r_y = real_2d.T
+    f_x, f_y = fake_2d.T
+
+    plt.figure(figsize=(13, 6))
+
+    mn_x = min(r_x.min(), f_x.min()) - 0.2
+    mn_y = min(r_y.min(), f_y.min()) - 0.2
+    mx_x = max(r_x.max(), f_x.max()) + 0.2
+    mx_y = max(r_y.max(), f_y.max()) + 0.2
+
+    ax = plt.subplot(121)
+
+    xy = np.vstack([r_x, r_y])
+    z = gaussian_kde(xy)(xy)
+
+    ax.scatter(r_x, r_y, c=z)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.set_xlim([mn_x, mx_x])
+    ax.set_ylim([mn_y, mx_y])
+
+    ax.set_ylabel(xlabel)
+    ax.set_xlabel(ylabel)
+    ax.set_title('Real timeseries')
+
+    ax = plt.subplot(122)
+
+    xy = np.vstack([f_x, f_y])
+    z = gaussian_kde(xy)(xy)
+
+    ax.scatter(f_x, f_y, c=z)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title('Fake timeseries')
+
+    ax.set_xlim([mn_x, mx_x])
+    ax.set_ylim([mn_y, mx_y])
+
+    plt.tight_layout()
+
+    if file_to_save:
+        plt.savefig(file_to_save, bbox_inches='tight')
 
 
 create_autoencoder_visualization_from_files = from_files(create_autoencoder_visualization)
@@ -213,22 +367,24 @@ if __name__ == '__main__':
         results['ae_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_autoencoder_visualization_from_features(args.dset, samples_file, args.epochs)
         results['ae_feats'] = (r_2d, f_2d)
+
     if args.type.lower() in ('pca', 'all'):
         print('Fitting PCA for visualization...')
+        r_2d, f_2d = create_pca_visualization_from_R_features(features_dir, args.samples_epoch)
+        results['pca_R_feats'] = (r_2d, f_2d)
         r_2d, f_2d = create_pca_visualization_from_files(args.dset, samples_file)
         results['pca_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_pca_visualization_from_features(args.dset, samples_file)
         results['pca_feats'] = (r_2d, f_2d)
-        r_2d, f_2d = create_pca_visualization_from_R_features(features_dir, args.samples_epoch)
-        results['pca_R_feats'] = (r_2d, f_2d)
+
     if args.type.lower() in ('tsne', 'all'):
         print('Fitting t-SNE for visualization...')
+        r_2d, f_2d = create_tsne_visualization_from_R_features(features_dir, args.samples_epoch)
+        results['tsne_R_feats'] = (r_2d, f_2d)
         r_2d, f_2d = create_tsne_visualization_from_files(args.dset, samples_file)
         results['tsne_raw'] = (r_2d, f_2d)
         r_2d, f_2d = create_tsne_visualization_from_features(args.dset, samples_file)
         results['tsne_feats'] = (r_2d, f_2d)
-        r_2d, f_2d = create_tsne_visualization_from_R_features(features_dir, args.samples_epoch)
-        results['tsne_R_feats'] = (r_2d, f_2d)
 
     if not os.path.isdir(report_dir):
         os.makedirs(report_dir)

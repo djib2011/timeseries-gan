@@ -21,6 +21,16 @@ def get_last_N(series: Union[pd.Series, np.ndarray], N: int = 18):
 
 
 def load_data(file_pattern: str) -> (np.ndarray,) * 2:
+    """
+    Load the training and test sets according to a file pattern.
+
+    E.g. if file_pattern = 'data/yearly_24', this function will load:
+    'data/yearly_24_train.h5' and 'data/yearly_24_test.h5'
+
+    :param file_pattern: A string that will if followed by '_train.h5' and '_test.h5'
+                         contains the training and test sets
+    :return: two files, an array containing the train set and an array containing the test set
+    """
 
     real_data_train = file_pattern + '_train.h5'
     real_data_test = file_pattern + '_test.h5'
@@ -55,7 +65,12 @@ def load_test_set(data_dir: Union[Path, str] = 'data'):
 
 
 def normalize_insample(data):
+    """
+    Normalize by computing the scales the only the insample part of the data
 
+    :param data: a numpy array where each row is a series
+    :return: the same array scaled
+    """
     mx = data[:, :-6].max(axis=1).reshape(-1, 1)
     mn = data[:, :-6].min(axis=1).reshape(-1, 1)
 
@@ -66,7 +81,12 @@ def normalize_insample(data):
 
 
 def normalize_data(data):
+    """
+    Normalize by computing the scales on all of the series
 
+    :param data: a numpy array where each row is a series
+    :return: the same array scaled
+    """
     mx = data.max(axis=1).reshape(-1, 1)
     mn = data.min(axis=1).reshape(-1, 1)
 
@@ -93,7 +113,14 @@ def h5_to_npy(h5_file: str):
     np.save(npy_file, data)
 
 
-def extract_features(arr):
+def extract_features(arr: np.ndarray) -> pd.DataFrame:
+    """
+    Extract tsfresh features from array
+
+    :param data: a numpy array where each row is a series
+    :return: DataFrame containing extracted features
+    """
+
     long_df = pd.DataFrame({'ind': [i for series_id in range(arr.shape[0]) for i in [series_id] * arr.shape[1]],
                             'time': list(range(arr.shape[1])) * arr.shape[0],
                             'values': arr.flatten()})
