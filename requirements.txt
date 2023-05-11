@@ -21,7 +21,7 @@ keyring==10.6.0
 keyrings.alt==3.0
 Markdown==3.1.1
 mock==3.0.5
-numpy==1.16.6
+numpy==1.22.0
 nvidia-ml-py==375.53.1
 pandas==0.24.2
 protobuf==3.18.3
