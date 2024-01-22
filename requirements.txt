@@ -1,5 +1,5 @@
 absl-py==0.9.0
-asn1crypto==0.24.0
+asn1crypto==1.5.1
 astor==0.8.1
 backports.weakref==1.0.post1
 blessings==1.7
