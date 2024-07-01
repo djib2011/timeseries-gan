@@ -38,7 +38,7 @@ SecretStorage==2.3.1
 six==1.14.0
 sklearn==0.0
 tensorboard==1.14.0
-tensorflow==2.11.1
+tensorflow==2.16.2
 tensorflow-estimator==1.14.0
 termcolor==1.1.0
 Werkzeug==3.0.1
